@@ -218,6 +218,10 @@ echo \#define ARDUINO_ESP32_RELEASE \"$ver_define\" >> "$PKG_DIR/cores/esp32/cor
 
 # Run split_packages for all vendors
 
+# Grab fqns this way
+# NAME=cat boards.txt | grep "variant=adafruit_feather_esp32_v2" | cut -f1 -d"."
+# FQBN=`cat boards.txt | grep "variant=adafruit_feather_esp32_v2" | cut -f1 -d"."`
+
 # Remove non espressif boards from boards.txt and from variants/
 
 # Compress package folder
