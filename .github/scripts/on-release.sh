@@ -216,6 +216,10 @@ echo \#define ARDUINO_ESP32_GIT_DESC `git -C "$GITHUB_WORKSPACE" describe --tags
 echo \#define ARDUINO_ESP32_RELEASE_$ver_define >> "$PKG_DIR/cores/esp32/core_version.h"
 echo \#define ARDUINO_ESP32_RELEASE \"$ver_define\" >> "$PKG_DIR/cores/esp32/core_version.h"
 
+# Run split_packages for all vendors
+
+# Remove non espressif boards from boards.txt and from variants/
+
 # Compress package folder
 echo "Creating ZIP ..."
 pushd "$OUTPUT_DIR" >/dev/null

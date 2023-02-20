@@ -16,7 +16,7 @@ cat boards.txt | grep "^menu\." >> ${VENDOR_DIR}/boards.txt
 cat boards.txt | grep --ignore-case "${VENDOR}" >> ${VENDOR_DIR}/boards.txt
 sed -i "s/build.core=esp32/build.core=esp32:esp32/g" ${VENDOR_DIR}/boards.txt
 
-# really , cat boards.txt for .variant and copy the right folders
+# really, cat boards.txt for .variant and copy the right folders
 cat ${VENDOR_DIR}/boards.txt | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} cp -r variants/{} ${VENDOR_DIR}/variants/
 
 mkdir ${VENDOR_DIR}/tools/
