@@ -174,11 +174,13 @@ mkdir -p "$PKG_DIR/tools"
 VENDORS=`ls vendors`
 for vendor in ${VENDORS}; do
 
-    VENDOR_DIR="$OUTPUT_DIR/$PACKAGE_NAME_$vendor"
+    echo "Creating package for $vendor"
+
+    VENDOR_DIR="$OUTPUT_DIR/$PACKAGE_NAME""_$vendor"
 
     mkdir -p "$VENDOR_DIR/tools"
 
-    echo "name=ESP32 Arduino (${VENDOR})" > ${VENDOR_DIR}/platform.txt
+    echo "name=ESP32 Arduino (${vendor})" > ${VENDOR_DIR}/platform.txt
     cat "$GITHUB_WORKSPACE/platform.txt" | grep "version=" >> ${VENDOR_DIR}/platform.txt
 
     # Remove fqbns not in $FQBNS list
@@ -187,16 +189,18 @@ for vendor in ${VENDORS}; do
     cat "$GITHUB_WORKSPACE/boards.txt" | grep "^menu\." >> ${VENDOR_DIR}/boards.txt
     BOARDS=`cat $GITHUB_WORKSPACE/vendors/$vendor`
     for board in ${BOARDS}; do
+        [[ $board =~ ^#.* ]] && continue
+        echo "Adding board $board"
         cat "$GITHUB_WORKSPACE/boards.txt" | grep "${board}\." >> ${VENDOR_DIR}/boards.txt
     done
     sed -i "s/build.core=esp32/build.core=esp32:esp32/g" ${VENDOR_DIR}/boards.txt
 
     # really, cat boards.txt for .variant and copy the right folders
-    cat ${VENDOR_DIR}/boards.txt | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} mv "$GITHUB_WORKSPACE/variants/"{} ${VENDOR_DIR}/variants/
+    cat ${VENDOR_DIR}/boards.txt | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} cp -r "$GITHUB_WORKSPACE/variants/"{} ${VENDOR_DIR}/variants/
 
     cp -r "$GITHUB_WORKSPACE/tools/partitions/" ${VENDOR_DIR}/tools/
-    cp -r "$GITHUB_WORKSPACE/tools/sdk/" ${VENDOR_DIR}/tools/
-    cp -r "$GITHUB_WORKSPACE/tools/gen*" ${VENDOR_DIR}/tools/
+    #cp -r "$GITHUB_WORKSPACE/tools/sdk/" ${VENDOR_DIR}/tools/
+    cp -r $GITHUB_WORKSPACE/tools/gen* ${VENDOR_DIR}/tools/
 
 done
 
