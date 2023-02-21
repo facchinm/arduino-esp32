@@ -10,8 +10,8 @@ adafruit_funhouse_esp32s2
 adafruit_itsybitsy_esp32
 adafruit_magtag29_esp32s2
 adafruit_metro_esp32s2
-adafruit_qtpy_esp32
+adafruit_qtpy_esp32_pico
 adafruit_qtpy_esp32c3
 adafruit_qtpy_esp32s2
 adafruit_qtpy_esp32s3_nopsram
-feather_esp32
+featheresp32

@@ -1,9 +1,4 @@
 esp32
-esp32-devkit-lipo
-esp32-evb
-esp32-gateway
-esp32-poe
-esp32-poe-iso
 esp32c3
 esp32da
 esp32s2
@@ -12,3 +7,4 @@ esp32s3
 esp32s3box
 esp32s3camlcd
 esp32s3usbotg
+pico32
