@@ -280,35 +280,6 @@ rm -rf "$PKG_DIR"
 echo "'$PACKAGE_ZIP' Created! Size: $PACKAGE_SIZE, SHA-256: $PACKAGE_SHA"
 echo
 
-# Compress all the derived packages
-# TODO: replace sed with jq
-echo "Creating ZIPs for derived cores ..."
-pushd "$OUTPUT_DIR" >/dev/null
-CORES=`ls | grep $PACKAGE_NAME | grep -v zip`
-for core in $CORES; do
-    zip -qr $core.zip "$core"
-    if [ $? -ne 0 ]; then echo "ERROR: Failed to create $core.zip ($?)"; exit 1; fi
-
-    # Calculate SHA-256
-    echo "Calculating SHA sum ..."
-    _PACKAGE_PATH="$OUTPUT_DIR/$core.zip"
-    _PACKAGE_SHA=`shasum -a 256 "$core.zip" | cut -f 1 -d ' '`
-    _PACKAGE_SIZE=`get_file_size "$core.zip"`
-
-    cat ../package/basic_vendor_template.json |
-    sed "s/%%VERSION%%/${RELEASE_TAG}/" |
-    sed "s/%%FILENAME%%/${core}.zip/" |
-    sed "s/%%CHECKSUM%%/${_PACKAGE_SHA}/" |
-    #sed "s/%%VENDOR%%/${_PACKAGE_VENDOR}/" |
-    #sed "s/%%BOARDS%%/${_PACKAGE_BOARDS}/" |
-    sed "s/%%SIZE%%/${_PACKAGE_SIZE}/" > package_${core}_index.json
-
-    rm -rf "$core"
-done
-popd >/dev/null
-echo
-
-
 # Upload package to release page
 echo "Uploading package to release page ..."
 PACKAGE_URL=`git_safe_upload_asset "$PACKAGE_PATH"`
@@ -334,6 +305,91 @@ if [ "$RELEASE_PRE" == "false" ]; then
     echo "Genarating $PACKAGE_JSON_REL ..."
     cat "$PACKAGE_JSON_TEMPLATE" | jq "$jq_arg" > "$OUTPUT_DIR/$PACKAGE_JSON_REL"
 fi
+
+# Compress all the derived packages
+# TODO: replace sed with jq
+echo "Creating ZIPs for derived cores ..."
+pushd "$OUTPUT_DIR" >/dev/null
+CORES=`ls | grep $PACKAGE_NAME | grep -v zip | grep -v json`
+for core in $CORES; do
+    zip -qr $core.zip "$core"
+    if [ $? -ne 0 ]; then echo "ERROR: Failed to create $core.zip ($?)"; exit 1; fi
+
+    # Calculate SHA-256
+    echo "Calculating SHA sum ..."
+    _PACKAGE_PATH="$OUTPUT_DIR/$core.zip"
+    _PACKAGE_SHA=`shasum -a 256 "$core.zip" | cut -f 1 -d ' '`
+    _PACKAGE_SIZE=`get_file_size "$core.zip"`
+    _PACKAGE_VENDOR=`echo $core | cut -f2 -d"_"`
+
+    #rm -f _boards_names.tmp
+    #cat $core/boards.txt | grep "name=" | cut -f 2 -d"=" | xargs -I{} echo \"{}\"  >> _boards_names.tmp
+
+    _PACKAGE_BOARDS="[]"
+    # TODO: try to create the boards names via jq
+
+    #jq_arg=".packages[1].name = \"ESP32 $_PACKAGE_VENDOR\" | \
+    #    .packages[1].platforms[0].version = \"$RELEASE_TAG\" | \
+    #    .packages[1].platforms[0].url = \"htts://downloads.arduino.cc/packages/staging/esp32/${core}.zip\" |\
+    #    .packages[1].platforms[0].archiveFileName = \"${core}.zip\" |\
+    #    .packages[1].platforms[0].size = \"$_PACKAGE_SIZE\" |\
+    #    .packages[1].platforms[0].checksum = \"SHA-256:$_PACKAGE_SHA\" |\
+    #    .packages[1].platforms[0].boards = $_PACKAGE_BOARDS"
+
+    # TODO: also consider REL package
+    #cat ../package/basic_vendor_template.json | jq "$jq_arg" > "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
+
+    jq --arg RELEASE_TAG "$RELEASE_TAG" \
+    --arg _PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \
+    --arg _ARCHIVE_NAME "${core}.zip" \
+    --arg _PACKAGE_SHA "$_PACKAGE_SHA" \
+    --arg _PACKAGE_SIZE "$_PACKAGE_SIZE" \
+    --arg _URL "http://downloads.arduino.cc/cores/staging/esp32/$core.zip" \
+    '.packages +=
+    [{
+      "name": $_PACKAGE_VENDOR,
+      "maintainer": "Espressif Systems",
+      "websiteURL": "https://github.com/espressif/arduino-esp32",
+      "email": "hristo@espressif.com",
+      "help": {
+        "online": "http://esp32.com"
+      },
+      "platforms": [
+        {
+          "name": "esp32",
+          "parent": "esp32",
+          "architecture": "esp32",
+          "version": $RELEASE_TAG,
+          "category": "ESP32",
+          "url": $_URL,
+          "archiveFileName": $_ARCHIVE_NAME,
+          "checksum": $_PACKAGE_SHA,
+          "size": $_PACKAGE_SIZE,
+          "help": {
+            "online": ""
+          },
+          "boards": [
+            "%%BOARDS%%"
+          ],
+          "toolsDependencies": []
+        }
+      ]
+    }]' "$OUTPUT_DIR/$PACKAGE_JSON_DEV" > "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV"
+
+    mv "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV" "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
+
+    #cat ../package/basic_vendor_template.json |
+    #sed "s/%%VERSION%%/${RELEASE_TAG}/" |
+    #sed "s/%%FILENAME%%/${core}.zip/" |
+    #sed "s/%%CHECKSUM%%/${_PACKAGE_SHA}/" |
+    #sed "s/%%VENDOR%%/${_PACKAGE_VENDOR}/" |
+    #sed "s/%%BOARDS%%/${_PACKAGE_BOARDS}/" |
+    #sed "s/%%SIZE%%/${_PACKAGE_SIZE}/" > package_${core}_index.json
+
+    rm -rf "$core"
+done
+popd >/dev/null
+echo
 
 # Figure out the last release or pre-release
 echo "Getting previous releases ..."
