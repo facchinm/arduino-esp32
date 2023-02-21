@@ -200,11 +200,10 @@ for vendor in ${VENDORS}; do
 
 done
 
-# Remove non espressif boards from boards.txt and from variants/
-BOARDS=`cat vendors/*`
-for board in ${BOARDS}; do
-    sed -i "s/$board*//g" ${$GITHUB_WORKSPACE}/boards.txt
-done
+# Create SDK package
+pushd "$GITHUB_WORKSPACE/tools" >/dev/null
+tar czvf "$OUTPUT_DIR/esp32-sdk-$RELEASE_TAG.tar.gz" sdk
+popd
 
 # Copy all core files to the package folder
 echo "Copying files for packaging ..."
@@ -222,7 +221,7 @@ cp -f  "$GITHUB_WORKSPACE/tools/gen_insights_package.py"    "$PKG_DIR/tools/"
 cp -f  "$GITHUB_WORKSPACE/tools/gen_insights_package.exe"   "$PKG_DIR/tools/"
 cp -Rf "$GITHUB_WORKSPACE/tools/partitions"                 "$PKG_DIR/tools/"
 cp -Rf "$GITHUB_WORKSPACE/tools/ide-debug"                  "$PKG_DIR/tools/"
-cp -Rf "$GITHUB_WORKSPACE/tools/sdk"                        "$PKG_DIR/tools/"
+#cp -Rf "$GITHUB_WORKSPACE/tools/sdk"                        "$PKG_DIR/tools/"
 cp -f $GITHUB_WORKSPACE/tools/platformio-build*.py          "$PKG_DIR/tools/"
 
 # Remove unnecessary files in the package folder
@@ -230,10 +229,17 @@ echo "Cleaning up folders ..."
 find "$PKG_DIR" -name '*.DS_Store' -exec rm -f {} \;
 find "$PKG_DIR" -name '*.git*' -type f -delete
 
+# Remove non espressif boards from boards.txt and from variants/
+BOARDS=`cat vendors/*`
+for board in ${BOARDS}; do
+    sed -i "/^${board}*/d" "$PKG_DIR/boards.txt"
+done
+
 # Replace tools locations in platform.txt
 echo "Generating platform.txt..."
 cat "$GITHUB_WORKSPACE/platform.txt" | \
 sed "s/version=.*/version=$ver$extent/g" | \
+sed 's/compiler.sdk.path={runtime.platform.path}\/tools\/sdk/compiler.sdk.path=\{runtime.tools.esp32-sdk.path\}/g' | \
 sed 's/tools.xtensa-esp32-elf-gcc.path={runtime.platform.path}\/tools\/xtensa-esp32-elf/tools.xtensa-esp32-elf-gcc.path=\{runtime.tools.xtensa-esp32-elf-gcc.path\}/g' | \
 sed 's/tools.xtensa-esp32s2-elf-gcc.path={runtime.platform.path}\/tools\/xtensa-esp32s2-elf/tools.xtensa-esp32s2-elf-gcc.path=\{runtime.tools.xtensa-esp32s2-elf-gcc.path\}/g' | \
 sed 's/tools.xtensa-esp32s3-elf-gcc.path={runtime.platform.path}\/tools\/xtensa-esp32s3-elf/tools.xtensa-esp32s3-elf-gcc.path=\{runtime.tools.xtensa-esp32s3-elf-gcc.path\}/g' | \
