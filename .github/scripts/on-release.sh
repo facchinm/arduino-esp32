@@ -236,8 +236,9 @@ find "$PKG_DIR" -name '*.git*' -type f -delete
 # Remove non espressif boards from boards.txt and from variants/
 BOARDS=`cat vendors/*`
 for board in ${BOARDS}; do
-    sed -i "/^${board}*/d" "$PKG_DIR/boards.txt"
+    sed -i "/^${board}.*/d" "$PKG_DIR/boards.txt"
 done
+cat "${OUTPUT_DIR}/${PACKAGE_NAME}_"*/boards.txt | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} rm -rf $PKG_DIR/variants/{}
 
 # Replace tools locations in platform.txt
 echo "Generating platform.txt..."
@@ -278,6 +279,35 @@ popd >/dev/null
 rm -rf "$PKG_DIR"
 echo "'$PACKAGE_ZIP' Created! Size: $PACKAGE_SIZE, SHA-256: $PACKAGE_SHA"
 echo
+
+# Compress all the derived packages
+# TODO: replace sed with jq
+echo "Creating ZIPs for derived cores ..."
+pushd "$OUTPUT_DIR" >/dev/null
+CORES=`ls | grep $PACKAGE_NAME | grep -v zip`
+for core in $CORES; do
+    zip -qr $core.zip "$core"
+    if [ $? -ne 0 ]; then echo "ERROR: Failed to create $core.zip ($?)"; exit 1; fi
+
+    # Calculate SHA-256
+    echo "Calculating SHA sum ..."
+    _PACKAGE_PATH="$OUTPUT_DIR/$core.zip"
+    _PACKAGE_SHA=`shasum -a 256 "$core.zip" | cut -f 1 -d ' '`
+    _PACKAGE_SIZE=`get_file_size "$core.zip"`
+
+    cat ../package/basic_vendor_template.json |
+    sed "s/%%VERSION%%/${RELEASE_TAG}/" |
+    sed "s/%%FILENAME%%/${core}.zip/" |
+    sed "s/%%CHECKSUM%%/${_PACKAGE_SHA}/" |
+    #sed "s/%%VENDOR%%/${_PACKAGE_VENDOR}/" |
+    #sed "s/%%BOARDS%%/${_PACKAGE_BOARDS}/" |
+    sed "s/%%SIZE%%/${_PACKAGE_SIZE}/" > package_${core}_index.json
+
+    rm -rf "$core"
+done
+popd >/dev/null
+echo
+
 
 # Upload package to release page
 echo "Uploading package to release page ..."

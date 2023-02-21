@@ -1,7 +1,7 @@
 {
   "packages": [
     {
-      "name": "",
+      "name": "ESP32 %%VENDOR%%",
       "maintainer": "Espressif Systems",
       "websiteURL": "https://github.com/espressif/arduino-esp32",
       "email": "hristo@espressif.com",
@@ -13,17 +13,17 @@
           "name": "esp32",
           "parent": "esp32",
           "architecture": "esp32",
-          "version": "",
+          "version": "%%VERSION%%",
           "category": "ESP32",
-          "url": "",
-          "archiveFileName": "",
-          "checksum": "",
-          "size": "",
+          "url": "http://downloads.arduino.cc/cores/staging/esp32/%%FILENAME%%",
+          "archiveFileName": "%%FILENAME%%",
+          "checksum": "%%CHECKSUM%%",
+          "size": "%%SIZE%%",
           "help": {
             "online": ""
           },
           "boards": [
-            ""
+            "%%BOARDS%%"
           ],
           "toolsDependencies": []
         }
