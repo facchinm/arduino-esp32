@@ -169,6 +169,43 @@ git -C "$GITHUB_WORKSPACE" submodule update --init --recursive > /dev/null 2>&1
 
 mkdir -p "$PKG_DIR/tools"
 
+
+# Run split_packages for all vendors
+VENDORS=`ls vendors`
+for vendor in ${VENDORS}; do
+
+    VENDOR_DIR="$OUTPUT_DIR/$PACKAGE_NAME_$vendor"
+
+    mkdir -p "$VENDOR_DIR/tools"
+
+    echo "name=ESP32 Arduino (${VENDOR})" > ${VENDOR_DIR}/platform.txt
+    cat "$GITHUB_WORKSPACE/platform.txt" | grep "version=" >> ${VENDOR_DIR}/platform.txt
+
+    # Remove fqbns not in $FQBNS list
+    touch ${VENDOR_DIR}/boards.txt
+    # Save all menus (will not be displayed if unused)
+    cat "$GITHUB_WORKSPACE/boards.txt" | grep "^menu\." >> ${VENDOR_DIR}/boards.txt
+    BOARDS=`cat $GITHUB_WORKSPACE/vendors/$vendor`
+    for board in ${BOARDS}; do
+        cat "$GITHUB_WORKSPACE/boards.txt" | grep "${board}\." >> ${VENDOR_DIR}/boards.txt
+    done
+    sed -i "s/build.core=esp32/build.core=esp32:esp32/g" ${VENDOR_DIR}/boards.txt
+
+    # really, cat boards.txt for .variant and copy the right folders
+    cat ${VENDOR_DIR}/boards.txt | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} mv "$GITHUB_WORKSPACE/variants/"{} ${VENDOR_DIR}/variants/
+
+    cp -r "$GITHUB_WORKSPACE/tools/partitions/" ${VENDOR_DIR}/tools/
+    cp -r "$GITHUB_WORKSPACE/tools/sdk/" ${VENDOR_DIR}/tools/
+    cp -r "$GITHUB_WORKSPACE/tools/gen*" ${VENDOR_DIR}/tools/
+
+done
+
+# Remove non espressif boards from boards.txt and from variants/
+BOARDS=`cat vendors/*`
+for board in ${BOARDS}; do
+    sed -i "s/$board*//g" ${$GITHUB_WORKSPACE}/boards.txt
+done
+
 # Copy all core files to the package folder
 echo "Copying files for packaging ..."
 cp -f  "$GITHUB_WORKSPACE/boards.txt"                       "$PKG_DIR/"
@@ -215,14 +252,6 @@ echo \#define ARDUINO_ESP32_GIT_VER 0x$ver_hex > "$PKG_DIR/cores/esp32/core_vers
 echo \#define ARDUINO_ESP32_GIT_DESC `git -C "$GITHUB_WORKSPACE" describe --tags 2>/dev/null` >> "$PKG_DIR/cores/esp32/core_version.h"
 echo \#define ARDUINO_ESP32_RELEASE_$ver_define >> "$PKG_DIR/cores/esp32/core_version.h"
 echo \#define ARDUINO_ESP32_RELEASE \"$ver_define\" >> "$PKG_DIR/cores/esp32/core_version.h"
-
-# Run split_packages for all vendors
-
-# Grab fqns this way
-# NAME=cat boards.txt | grep "variant=adafruit_feather_esp32_v2" | cut -f1 -d"."
-# FQBN=`cat boards.txt | grep "variant=adafruit_feather_esp32_v2" | cut -f1 -d"."`
-
-# Remove non espressif boards from boards.txt and from variants/
 
 # Compress package folder
 echo "Creating ZIP ..."

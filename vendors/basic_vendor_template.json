@@ -1,0 +1,33 @@
+{
+  "packages": [
+    {
+      "name": "",
+      "maintainer": "Espressif Systems",
+      "websiteURL": "https://github.com/espressif/arduino-esp32",
+      "email": "hristo@espressif.com",
+      "help": {
+        "online": "http://esp32.com"
+      },
+      "platforms": [
+        {
+          "name": "esp32",
+          "parent": "esp32",
+          "architecture": "esp32",
+          "version": "",
+          "category": "ESP32",
+          "url": "",
+          "archiveFileName": "",
+          "checksum": "",
+          "size": "",
+          "help": {
+            "online": ""
+          },
+          "boards": [
+            ""
+          ],
+          "toolsDependencies": []
+        }
+      ]
+    }
+  ]
+}
