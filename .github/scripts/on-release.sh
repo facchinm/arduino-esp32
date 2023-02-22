@@ -205,7 +205,6 @@ for vendor in ${VENDORS}; do
 done
 
 # Create SDK package
-# TODO: upload sdk package to download servers
 pushd "$GITHUB_WORKSPACE/tools" >/dev/null
 tar czvf "$OUTPUT_DIR/esp32-sdk-$RELEASE_TAG.tar.gz" sdk
 popd
@@ -308,11 +307,13 @@ if [ "$RELEASE_PRE" == "false" ]; then
 fi
 
 # Generate correct version for sdk
-# TODO: broken ATM
-cat "$OUTPUT_DIR/$PACKAGE_JSON_DEV" | jq --arg RELEASE_TAG "$RELEASE_TAG" -r '.packages[0].tools[] | (select(.name=="esp32-sdk") |.version = $RELEASE_TAG)'
+# TODO: add version to both toolsDependencies and tools[].esp32-sdk
+# TODO: upload esp32-sdk-$version-tar.gz to download servers
+# TODO: populate esp32-sdk size and checksum
+
+# cat "$OUTPUT_DIR/$PACKAGE_JSON_DEV" | jq --arg RELEASE_TAG "$RELEASE_TAG" -r '.packages[0].tools[] | (select(.name=="esp32-sdk") |.version = $RELEASE_TAG)'
 
 # Compress all the derived packages
-# TODO: replace sed with jq
 echo "Creating ZIPs for derived cores ..."
 pushd "$OUTPUT_DIR" >/dev/null
 CORES=`ls | grep $PACKAGE_NAME | grep -v zip | grep -v json`
@@ -321,7 +322,6 @@ for core in $CORES; do
     if [ $? -ne 0 ]; then echo "ERROR: Failed to create $core.zip ($?)"; exit 1; fi
 
     # Calculate SHA-256
-    echo "Calculating SHA sum ..."
     _PACKAGE_PATH="$OUTPUT_DIR/$core.zip"
     _PACKAGE_SHA=`shasum -a 256 "$core.zip" | cut -f 1 -d ' '`
     _PACKAGE_SIZE=`get_file_size "$core.zip"`
@@ -335,20 +335,7 @@ for core in $CORES; do
     _PACKAGE_BOARDS=`cat _tmp_package_boards.txt`
     _PACKAGE_BOARDS=`echo ${_PACKAGE_BOARDS:13:-1}`
 
-    echo $_PACKAGE_BOARDS
-
-    # TODO: try to create the boards names via jq
-
-    #jq_arg=".packages[1].name = \"ESP32 $_PACKAGE_VENDOR\" | \
-    #    .packages[1].platforms[0].version = \"$RELEASE_TAG\" | \
-    #    .packages[1].platforms[0].url = \"htts://downloads.arduino.cc/packages/staging/esp32/${core}.zip\" |\
-    #    .packages[1].platforms[0].archiveFileName = \"${core}.zip\" |\
-    #    .packages[1].platforms[0].size = \"$_PACKAGE_SIZE\" |\
-    #    .packages[1].platforms[0].checksum = \"SHA-256:$_PACKAGE_SHA\" |\
-    #    .packages[1].platforms[0].boards = $_PACKAGE_BOARDS"
-
-    # TODO: also consider REL package
-    #cat ../package/basic_vendor_template.json | jq "$jq_arg" > "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
+    # TODO: also consider RELEASE package
 
     jq --arg RELEASE_TAG "$RELEASE_TAG" \
     --arg __PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \
@@ -389,16 +376,6 @@ for core in $CORES; do
     }]' "$OUTPUT_DIR/$PACKAGE_JSON_DEV" > "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV"
 
     mv "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV" "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
-
-    #jq --arg _PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \ '.packages[] | select(.name==$_PACKAGE_VENDOR).platforms[0].boards |= "TEST"' "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV" > "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
-
-    #cat ../package/basic_vendor_template.json |
-    #sed "s/%%VERSION%%/${RELEASE_TAG}/" |
-    #sed "s/%%FILENAME%%/${core}.zip/" |
-    #sed "s/%%CHECKSUM%%/${_PACKAGE_SHA}/" |
-    #sed "s/%%VENDOR%%/${_PACKAGE_VENDOR}/" |
-    #sed "s/%%BOARDS%%/${_PACKAGE_BOARDS}/" |
-    #sed "s/%%SIZE%%/${_PACKAGE_SIZE}/" > package_${core}_index.json
 
     rm -rf "$core"
 done
