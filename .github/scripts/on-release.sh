@@ -205,6 +205,7 @@ for vendor in ${VENDORS}; do
 done
 
 # Create SDK package
+# TODO: upload sdk package to download servers
 pushd "$GITHUB_WORKSPACE/tools" >/dev/null
 tar czvf "$OUTPUT_DIR/esp32-sdk-$RELEASE_TAG.tar.gz" sdk
 popd
@@ -306,6 +307,10 @@ if [ "$RELEASE_PRE" == "false" ]; then
     cat "$PACKAGE_JSON_TEMPLATE" | jq "$jq_arg" > "$OUTPUT_DIR/$PACKAGE_JSON_REL"
 fi
 
+# Generate correct version for sdk
+# TODO: broken ATM
+cat "$OUTPUT_DIR/$PACKAGE_JSON_DEV" | jq --arg RELEASE_TAG "$RELEASE_TAG" -r '.packages[0].tools[] | (select(.name=="esp32-sdk") |.version = $RELEASE_TAG)'
+
 # Compress all the derived packages
 # TODO: replace sed with jq
 echo "Creating ZIPs for derived cores ..."
@@ -322,10 +327,16 @@ for core in $CORES; do
     _PACKAGE_SIZE=`get_file_size "$core.zip"`
     _PACKAGE_VENDOR=`echo $core | cut -f2 -d"_"`
 
-    #rm -f _boards_names.tmp
-    #cat $core/boards.txt | grep "name=" | cut -f 2 -d"=" | xargs -I{} echo \"{}\"  >> _boards_names.tmp
+    cat $core/boards.txt | grep "name=" | cut -f 2 -d"=" |
+    while read line; do
+      jq -n --arg name "$line" '{name: $name}'
+    done | jq -n '.boards |= [inputs]' > _tmp_package_boards.txt
 
-    _PACKAGE_BOARDS="[]"
+    _PACKAGE_BOARDS=`cat _tmp_package_boards.txt`
+    _PACKAGE_BOARDS=`echo ${_PACKAGE_BOARDS:13:-1}`
+
+    echo $_PACKAGE_BOARDS
+
     # TODO: try to create the boards names via jq
 
     #jq_arg=".packages[1].name = \"ESP32 $_PACKAGE_VENDOR\" | \
@@ -345,6 +356,7 @@ for core in $CORES; do
     --arg _PACKAGE_SHA "$_PACKAGE_SHA" \
     --arg _PACKAGE_SIZE "$_PACKAGE_SIZE" \
     --arg _URL "http://downloads.arduino.cc/cores/staging/esp32/$core.zip" \
+    --argjson _PACKAGE_BOARDS "$_PACKAGE_BOARDS" \
     '.packages +=
     [{
       "name": $_PACKAGE_VENDOR,
@@ -368,15 +380,15 @@ for core in $CORES; do
           "help": {
             "online": ""
           },
-          "boards": [
-            "%%BOARDS%%"
-          ],
+          boards: $_PACKAGE_BOARDS,
           "toolsDependencies": []
         }
       ]
     }]' "$OUTPUT_DIR/$PACKAGE_JSON_DEV" > "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV"
 
     mv "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV" "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
+
+    #jq --arg _PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \ '.packages[] | select(.name==$_PACKAGE_VENDOR).platforms[0].boards |= "TEST"' "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV" > "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
 
     #cat ../package/basic_vendor_template.json |
     #sed "s/%%VERSION%%/${RELEASE_TAG}/" |
