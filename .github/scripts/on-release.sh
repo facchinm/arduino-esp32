@@ -169,6 +169,46 @@ git -C "$GITHUB_WORKSPACE" submodule update --init --recursive > /dev/null 2>&1
 
 mkdir -p "$PKG_DIR/tools"
 
+
+# Run split_packages for all vendors
+VENDORS=`ls vendors`
+for vendor in ${VENDORS}; do
+
+    echo "Creating package for $vendor"
+
+    VENDOR_DIR="$OUTPUT_DIR/$PACKAGE_NAME""_$vendor"
+
+    mkdir -p "$VENDOR_DIR/tools"
+
+    echo "name=ESP32 Arduino (${vendor})" > ${VENDOR_DIR}/platform.txt
+    cat "$GITHUB_WORKSPACE/platform.txt" | grep "version=" >> ${VENDOR_DIR}/platform.txt
+
+    # Remove fqbns not in $FQBNS list
+    touch ${VENDOR_DIR}/boards.txt
+    # Save all menus (will not be displayed if unused)
+    cat "$GITHUB_WORKSPACE/boards.txt" | grep "^menu\." >> ${VENDOR_DIR}/boards.txt
+    BOARDS=`cat $GITHUB_WORKSPACE/vendors/$vendor`
+    for board in ${BOARDS}; do
+        [[ $board =~ ^#.* ]] && continue
+        echo "Adding board $board"
+        cat "$GITHUB_WORKSPACE/boards.txt" | grep "${board}\." >> ${VENDOR_DIR}/boards.txt
+    done
+    sed -i "s/build.core=esp32/build.core=esp32:esp32/g" ${VENDOR_DIR}/boards.txt
+
+    # really, cat boards.txt for .variant and copy the right folders
+    cat ${VENDOR_DIR}/boards.txt | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} cp -r "$GITHUB_WORKSPACE/variants/"{} ${VENDOR_DIR}/variants/
+
+    cp -r "$GITHUB_WORKSPACE/tools/partitions/" ${VENDOR_DIR}/tools/
+    #cp -r "$GITHUB_WORKSPACE/tools/sdk/" ${VENDOR_DIR}/tools/
+    cp -r $GITHUB_WORKSPACE/tools/gen* ${VENDOR_DIR}/tools/
+
+done
+
+# Create SDK package
+pushd "$GITHUB_WORKSPACE/tools" >/dev/null
+tar czvf "$OUTPUT_DIR/esp32-sdk-$RELEASE_TAG.tar.gz" sdk
+popd
+
 # Copy all core files to the package folder
 echo "Copying files for packaging ..."
 cp -f  "$GITHUB_WORKSPACE/boards.txt"                       "$PKG_DIR/"
@@ -176,7 +216,7 @@ cp -f  "$GITHUB_WORKSPACE/package.json"                     "$PKG_DIR/"
 cp -f  "$GITHUB_WORKSPACE/programmers.txt"                  "$PKG_DIR/"
 cp -Rf "$GITHUB_WORKSPACE/cores"                            "$PKG_DIR/"
 cp -Rf "$GITHUB_WORKSPACE/libraries"                        "$PKG_DIR/"
-cp -Rf "$GITHUB_WORKSPACE/variants"                         "$PKG_DIR/"
+#cp -Rf "$GITHUB_WORKSPACE/variants"                         "$PKG_DIR/"
 cp -f  "$GITHUB_WORKSPACE/tools/espota.exe"                 "$PKG_DIR/tools/"
 cp -f  "$GITHUB_WORKSPACE/tools/espota.py"                  "$PKG_DIR/tools/"
 cp -f  "$GITHUB_WORKSPACE/tools/gen_esp32part.py"           "$PKG_DIR/tools/"
@@ -185,7 +225,7 @@ cp -f  "$GITHUB_WORKSPACE/tools/gen_insights_package.py"    "$PKG_DIR/tools/"
 cp -f  "$GITHUB_WORKSPACE/tools/gen_insights_package.exe"   "$PKG_DIR/tools/"
 cp -Rf "$GITHUB_WORKSPACE/tools/partitions"                 "$PKG_DIR/tools/"
 cp -Rf "$GITHUB_WORKSPACE/tools/ide-debug"                  "$PKG_DIR/tools/"
-cp -Rf "$GITHUB_WORKSPACE/tools/sdk"                        "$PKG_DIR/tools/"
+#cp -Rf "$GITHUB_WORKSPACE/tools/sdk"                        "$PKG_DIR/tools/"
 cp -f $GITHUB_WORKSPACE/tools/platformio-build*.py          "$PKG_DIR/tools/"
 
 # Remove unnecessary files in the package folder
@@ -193,10 +233,19 @@ echo "Cleaning up folders ..."
 find "$PKG_DIR" -name '*.DS_Store' -exec rm -f {} \;
 find "$PKG_DIR" -name '*.git*' -type f -delete
 
+# Remove non espressif boards from boards.txt and from variants/
+BOARDS=`cat vendors/*`
+for board in ${BOARDS}; do
+    sed -i "/^${board}.*/d" "$PKG_DIR/boards.txt"
+done
+mkdir ${PKG_DIR}/variants/
+cat "$PKG_DIR/boards.txt" | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} cp -r "$GITHUB_WORKSPACE/variants/"{} ${PKG_DIR}/variants/
+
 # Replace tools locations in platform.txt
 echo "Generating platform.txt..."
 cat "$GITHUB_WORKSPACE/platform.txt" | \
 sed "s/version=.*/version=$ver$extent/g" | \
+sed 's/compiler.sdk.path={runtime.platform.path}\/tools\/sdk/compiler.sdk.path=\{runtime.tools.esp32-sdk.path\}/g' | \
 sed 's/tools.xtensa-esp32-elf-gcc.path={runtime.platform.path}\/tools\/xtensa-esp32-elf/tools.xtensa-esp32-elf-gcc.path=\{runtime.tools.xtensa-esp32-elf-gcc.path\}/g' | \
 sed 's/tools.xtensa-esp32s2-elf-gcc.path={runtime.platform.path}\/tools\/xtensa-esp32s2-elf/tools.xtensa-esp32s2-elf-gcc.path=\{runtime.tools.xtensa-esp32s2-elf-gcc.path\}/g' | \
 sed 's/tools.xtensa-esp32s3-elf-gcc.path={runtime.platform.path}\/tools\/xtensa-esp32s3-elf/tools.xtensa-esp32s3-elf-gcc.path=\{runtime.tools.xtensa-esp32s3-elf-gcc.path\}/g' | \
@@ -257,6 +306,82 @@ if [ "$RELEASE_PRE" == "false" ]; then
     echo "Genarating $PACKAGE_JSON_REL ..."
     cat "$PACKAGE_JSON_TEMPLATE" | jq "$jq_arg" > "$OUTPUT_DIR/$PACKAGE_JSON_REL"
 fi
+
+# Generate correct version for sdk
+# TODO: add version to both toolsDependencies and tools[].esp32-sdk
+# TODO: upload esp32-sdk-$version-tar.gz to download servers
+# TODO: populate esp32-sdk size and checksum
+
+# cat "$OUTPUT_DIR/$PACKAGE_JSON_DEV" | jq --arg RELEASE_TAG "$RELEASE_TAG" -r '.packages[0].tools[] | (select(.name=="esp32-sdk") |.version = $RELEASE_TAG)'
+
+# Compress all the derived packages
+echo "Creating ZIPs for derived cores ..."
+pushd "$OUTPUT_DIR" >/dev/null
+CORES=`ls | grep $PACKAGE_NAME | grep -v zip | grep -v json`
+for core in $CORES; do
+    zip -qr $core.zip "$core"
+    if [ $? -ne 0 ]; then echo "ERROR: Failed to create $core.zip ($?)"; exit 1; fi
+
+    # Calculate SHA-256
+    _PACKAGE_PATH="$OUTPUT_DIR/$core.zip"
+    _PACKAGE_SHA=`shasum -a 256 "$core.zip" | cut -f 1 -d ' '`
+    _PACKAGE_SIZE=`get_file_size "$core.zip"`
+    _PACKAGE_VENDOR=`echo $core | cut -f2 -d"_"`
+
+    cat $core/boards.txt | grep "name=" | cut -f 2 -d"=" |
+    while read line; do
+      jq -n --arg name "$line" '{name: $name}'
+    done | jq -n '.boards |= [inputs]' > _tmp_package_boards.txt
+
+    _PACKAGE_BOARDS=`cat _tmp_package_boards.txt`
+    _PACKAGE_BOARDS=`echo ${_PACKAGE_BOARDS:13:-1}`
+
+    # TODO: also consider RELEASE package
+
+    jq --arg RELEASE_TAG "$RELEASE_TAG" \
+    --arg __PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \
+    --arg _PACKAGE_NAME "esp32 $_PACKAGE_VENDOR" \
+    --arg _PACKAGE_MAINTAINER "Espressif Systems - $_PACKAGE_VENDOR" \
+    --arg _ARCHIVE_NAME "${core}.zip" \
+    --arg _PACKAGE_SHA "SHA-256:$_PACKAGE_SHA" \
+    --arg _PACKAGE_SIZE "$_PACKAGE_SIZE" \
+    --arg _URL "http://downloads.arduino.cc/cores/staging/esp32/$core.zip" \
+    --argjson _PACKAGE_BOARDS "$_PACKAGE_BOARDS" \
+    '.packages +=
+    [{
+      "name": $__PACKAGE_VENDOR,
+      "maintainer": $_PACKAGE_MAINTAINER,
+      "websiteURL": "https://github.com/espressif/arduino-esp32",
+      "email": "hristo@espressif.com",
+      "help": {
+        "online": "http://esp32.com"
+      },
+      "platforms": [
+        {
+          "name": $_PACKAGE_NAME,
+          "parent": "esp32",
+          "architecture": "esp32",
+          "version": $RELEASE_TAG,
+          "category": "ESP32",
+          "url": $_URL,
+          "archiveFileName": $_ARCHIVE_NAME,
+          "checksum": $_PACKAGE_SHA,
+          "size": $_PACKAGE_SIZE,
+          "help": {
+            "online": ""
+          },
+          boards: $_PACKAGE_BOARDS,
+          "toolsDependencies": []
+        }
+      ]
+    }]' "$OUTPUT_DIR/$PACKAGE_JSON_DEV" > "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV"
+
+    mv "$OUTPUT_DIR/"_tmp"$PACKAGE_JSON_DEV" "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
+
+    rm -rf "$core"
+done
+popd >/dev/null
+echo
 
 # Figure out the last release or pre-release
 echo "Getting previous releases ..."
