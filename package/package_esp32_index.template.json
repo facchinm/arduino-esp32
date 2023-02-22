@@ -75,6 +75,11 @@
               "packager": "esp32",
               "name": "mklittlefs",
               "version": "3.0.0-gnu12-dc7f933"
+            },
+            {
+              "packager": "esp32",
+              "name": "esp32-sdk",
+              "version": ""
             }
           ]
         }
@@ -517,6 +522,61 @@
               "archiveFileName": "mkspiffs-0.2.3-arduino-esp32-linux-armhf.tar.gz",
               "checksum": "SHA-256:ade3dc00117912ac08a1bdbfbfe76b12d21a34bc5fa1de0cfc45fe7a8d0a0185",
               "size": "40665"
+            }
+          ]
+        },
+        {
+          "name": "esp32-sdk",
+          "version": "",
+          "systems": [
+            {
+              "host": "i686-mingw32",
+              "url": "https://downloads.arduino.cc/tools/esp32-sdk-2.0.8.tar.gz",
+              "archiveFileName": "esp32-sdk-2.0.8.tar.gz",
+              "checksum": "SHA-256:5828b84686330b8c8a9a133b93d3e0261fd1e13b4b32b5c0ba29f2d1c5826086",
+              "size": "245722488"
+            },
+            {
+              "host": "x86_64-apple-darwin",
+              "url": "https://downloads.arduino.cc/tools/esp32-sdk-2.0.8.tar.gz",
+              "archiveFileName": "esp32-sdk-2.0.8.tar.gz",
+              "checksum": "SHA-256:5828b84686330b8c8a9a133b93d3e0261fd1e13b4b32b5c0ba29f2d1c5826086",
+              "size": "245722488"
+            },
+            {
+              "host": "i386-apple-darwin",
+              "url": "https://downloads.arduino.cc/tools/esp32-sdk-2.0.8.tar.gz",
+              "archiveFileName": "esp32-sdk-2.0.8.tar.gz",
+              "checksum": "SHA-256:5828b84686330b8c8a9a133b93d3e0261fd1e13b4b32b5c0ba29f2d1c5826086",
+              "size": "245722488"
+            },
+            {
+              "host": "x86_64-pc-linux-gnu",
+              "url": "https://downloads.arduino.cc/tools/esp32-sdk-2.0.8.tar.gz",
+              "archiveFileName": "esp32-sdk-2.0.8.tar.gz",
+              "checksum": "SHA-256:5828b84686330b8c8a9a133b93d3e0261fd1e13b4b32b5c0ba29f2d1c5826086",
+              "size": "245722488"
+            },
+            {
+              "host": "i686-pc-linux-gnu",
+              "url": "https://downloads.arduino.cc/tools/esp32-sdk-2.0.8.tar.gz",
+              "archiveFileName": "esp32-sdk-2.0.8.tar.gz",
+              "checksum": "SHA-256:5828b84686330b8c8a9a133b93d3e0261fd1e13b4b32b5c0ba29f2d1c5826086",
+              "size": "245722488"
+            },
+            {
+              "host": "arm-linux-gnueabihf",
+              "url": "https://downloads.arduino.cc/tools/esp32-sdk-2.0.8.tar.gz",
+              "archiveFileName": "esp32-sdk-2.0.8.tar.gz",
+              "checksum": "SHA-256:5828b84686330b8c8a9a133b93d3e0261fd1e13b4b32b5c0ba29f2d1c5826086",
+              "size": "245722488"
+            },
+            {
+              "host": "aarch64-linux-gnu",
+              "url": "https://downloads.arduino.cc/tools/esp32-sdk-2.0.8.tar.gz",
+              "archiveFileName": "esp32-sdk-2.0.8.tar.gz",
+              "checksum": "SHA-256:5828b84686330b8c8a9a133b93d3e0261fd1e13b4b32b5c0ba29f2d1c5826086",
+              "size": "245722488"
             }
           ]
         }
