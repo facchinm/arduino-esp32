@@ -216,7 +216,7 @@ cp -f  "$GITHUB_WORKSPACE/package.json"                     "$PKG_DIR/"
 cp -f  "$GITHUB_WORKSPACE/programmers.txt"                  "$PKG_DIR/"
 cp -Rf "$GITHUB_WORKSPACE/cores"                            "$PKG_DIR/"
 cp -Rf "$GITHUB_WORKSPACE/libraries"                        "$PKG_DIR/"
-cp -Rf "$GITHUB_WORKSPACE/variants"                         "$PKG_DIR/"
+#cp -Rf "$GITHUB_WORKSPACE/variants"                         "$PKG_DIR/"
 cp -f  "$GITHUB_WORKSPACE/tools/espota.exe"                 "$PKG_DIR/tools/"
 cp -f  "$GITHUB_WORKSPACE/tools/espota.py"                  "$PKG_DIR/tools/"
 cp -f  "$GITHUB_WORKSPACE/tools/gen_esp32part.py"           "$PKG_DIR/tools/"
@@ -238,7 +238,8 @@ BOARDS=`cat vendors/*`
 for board in ${BOARDS}; do
     sed -i "/^${board}.*/d" "$PKG_DIR/boards.txt"
 done
-cat "${OUTPUT_DIR}/${PACKAGE_NAME}_"*/boards.txt | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} rm -rf $PKG_DIR/variants/{}
+mkdir ${PKG_DIR}/variants/
+cat "$PKG_DIR/boards.txt" | grep "\.variant=" | cut -f2 -d"=" | xargs -I{} cp -r "$GITHUB_WORKSPACE/variants/"{} ${PKG_DIR}/variants/
 
 # Replace tools locations in platform.txt
 echo "Generating platform.txt..."
