@@ -351,7 +351,7 @@ for core in $CORES; do
     #cat ../package/basic_vendor_template.json | jq "$jq_arg" > "$OUTPUT_DIR/$PACKAGE_JSON_DEV"
 
     jq --arg RELEASE_TAG "$RELEASE_TAG" \
-    --arg _PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \
+    --arg __PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \
     --arg _PACKAGE_NAME "esp32 $_PACKAGE_VENDOR" \
     --arg _PACKAGE_MAINTAINER "Espressif Systems - $_PACKAGE_VENDOR" \
     --arg _ARCHIVE_NAME "${core}.zip" \
@@ -361,8 +361,8 @@ for core in $CORES; do
     --argjson _PACKAGE_BOARDS "$_PACKAGE_BOARDS" \
     '.packages +=
     [{
-      "name": $_PACKAGE_VENDOR,
-      "maintainer": $_PACKAGE_MAINTAINER
+      "name": $__PACKAGE_VENDOR,
+      "maintainer": $_PACKAGE_MAINTAINER,
       "websiteURL": "https://github.com/espressif/arduino-esp32",
       "email": "hristo@espressif.com",
       "help": {
