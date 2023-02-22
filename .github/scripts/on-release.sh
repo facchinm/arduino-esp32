@@ -352,15 +352,17 @@ for core in $CORES; do
 
     jq --arg RELEASE_TAG "$RELEASE_TAG" \
     --arg _PACKAGE_VENDOR "ESP32 $_PACKAGE_VENDOR" \
+    --arg _PACKAGE_NAME "esp32 $_PACKAGE_VENDOR" \
+    --arg _PACKAGE_MAINTAINER "Espressif Systems - $_PACKAGE_VENDOR" \
     --arg _ARCHIVE_NAME "${core}.zip" \
-    --arg _PACKAGE_SHA "$_PACKAGE_SHA" \
+    --arg _PACKAGE_SHA "SHA-256:$_PACKAGE_SHA" \
     --arg _PACKAGE_SIZE "$_PACKAGE_SIZE" \
     --arg _URL "http://downloads.arduino.cc/cores/staging/esp32/$core.zip" \
     --argjson _PACKAGE_BOARDS "$_PACKAGE_BOARDS" \
     '.packages +=
     [{
       "name": $_PACKAGE_VENDOR,
-      "maintainer": "Espressif Systems",
+      "maintainer": $_PACKAGE_MAINTAINER
       "websiteURL": "https://github.com/espressif/arduino-esp32",
       "email": "hristo@espressif.com",
       "help": {
@@ -368,7 +370,7 @@ for core in $CORES; do
       },
       "platforms": [
         {
-          "name": "esp32",
+          "name": $_PACKAGE_NAME,
           "parent": "esp32",
           "architecture": "esp32",
           "version": $RELEASE_TAG,
